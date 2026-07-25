@@ -255,49 +255,47 @@ echo ""
 ask_yesno "Install the web admin panel too?" WANT_WEBPANEL
 PANEL_LINK=""
 
-if [ "$WANT_WEBPANEL" == "y" ]; then
-    echo ""
-    info "Web panel admin account"
-    ask_required "Panel admin username" PANEL_ADMIN_USER
-    ask_password "Panel admin password" PANEL_ADMIN_PASS
+echo ""
+info "Web panel admin account"
+ask_required "Panel admin username" PANEL_ADMIN_USER
+ask_password "Panel admin password" PANEL_ADMIN_PASS
 
-    echo ""
-    info "Web panel port"
-    PANEL_PORT=""
-    while [ -z "$PANEL_PORT" ]; do
-        read -rp "Port for the web panel (avoid ports already used by 3X-UI/xray, e.g. 2200-2999 range): " PANEL_PORT
-        if ! [[ "$PANEL_PORT" =~ ^[0-9]+$ ]]; then
-            warn "Please enter a numeric port."
-            PANEL_PORT=""
-        elif ! is_port_free "$PANEL_PORT"; then
-            warn "Port $PANEL_PORT is already in use. Choose a different one."
-            PANEL_PORT=""
-        fi
-    done
+echo ""
+info "Web panel port"
+PANEL_PORT=""
+while [ -z "$PANEL_PORT" ]; do
+    read -rp "Port for the web panel (avoid ports already used by 3X-UI/xray, e.g. 2200-2999 range): " PANEL_PORT
+    if ! [[ "$PANEL_PORT" =~ ^[0-9]+$ ]]; then
+        warn "Please enter a numeric port."
+        PANEL_PORT=""
+    elif ! is_port_free "$PANEL_PORT"; then
+        warn "Port $PANEL_PORT is already in use. Choose a different one."
+        PANEL_PORT=""
+    fi
+done
 
-    PUB_IP=$(get_public_ip)
-    PANEL_LINK="http://${PUB_IP:-YOUR-SERVER-IP}:${PANEL_PORT}/"
+PUB_IP=$(get_public_ip)
+PANEL_LINK="http://${PUB_IP:-YOUR-SERVER-IP}:${PANEL_PORT}/"
 
-    env_updates=$(cat << ENVEOF
+env_updates=$(cat << ENVEOF
 PANEL_ADMIN_USER=${PANEL_ADMIN_USER}
 PANEL_ADMIN_PASS=${PANEL_ADMIN_PASS}
 WEBPANEL_PORT=${PANEL_PORT}
 ENVEOF
 )
-    echo "$env_updates" >> "$BOT_DIR/.env"
+echo "$env_updates" >> "$BOT_DIR/.env"
 
-    info "Installing web panel dependencies..."
-    if [ -f "$BOT_DIR/webpanel/requirements-webpanel.txt" ]; then
-        "$BOT_DIR/.venv/bin/python3" -m pip install -r "$BOT_DIR/webpanel/requirements-webpanel.txt" -q
-    fi
-
-    cp "$BOT_DIR/scripts/webpanel.service" /etc/systemd/system/webpanel.service
-    sed -i "s|{{BOT_DIR}}|$BOT_DIR|g; s|{{PANEL_PORT}}|$PANEL_PORT|g" /etc/systemd/system/webpanel.service
-    systemctl daemon-reload
-    systemctl enable webpanel -q
-    systemctl restart webpanel
-    ok "Web panel installed and started."
+info "Installing web panel dependencies..."
+if [ -f "$BOT_DIR/webpanel/requirements-webpanel.txt" ]; then
+    "$BOT_DIR/.venv/bin/python3" -m pip install -r "$BOT_DIR/webpanel/requirements-webpanel.txt" -q
 fi
+
+cp "$BOT_DIR/scripts/webpanel.service" /etc/systemd/system/webpanel.service
+sed -i "s|{{BOT_DIR}}|$BOT_DIR|g; s|{{PANEL_PORT}}|$PANEL_PORT|g" /etc/systemd/system/webpanel.service
+systemctl daemon-reload
+systemctl enable webpanel -q
+systemctl restart webpanel
+ok "Web panel installed and started."
 
 echo ""
 ask_yesno "Start the bot right now?" START_NOW
