@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}بات و ادمین‌ها{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>بات و ادمین‌ها</h1>
+    <p class="page-sub">توکن بات تلگرام و آیدی عددی ادمین‌ها</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">🤖 توکن و ادمین‌ها</h2>
+    <form method="post" action="/settings/bot" class="form-grid">
+        <div class="field">
+            <label>توکن بات (BOT_TOKEN)</label>
+            <input type="text" name="bot_token" value="{{ bot_token }}" required>
+        </div>
+        <div class="field">
+            <label>آیدی عددی ادمین‌ها (با , جدا کنید)</label>
+            <input type="text" name="admin_ids" value="{{ admin_ids }}" placeholder="123456789,987654321" required>
+        </div>
+        <button type="submit" class="btn btn-primary">💾 ذخیره و ری‌استارت بات</button>
+    </form>
+</div>
+{% endblock %}

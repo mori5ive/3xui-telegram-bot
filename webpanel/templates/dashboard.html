@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}داشبورد{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>داشبورد</h1>
+    <p class="page-sub">نمای کلی از وضعیت ربات</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon icon-blue">👥</div>
+        <div class="stat-body">
+            <div class="stat-value">{{ "{:,}".format(total_users) }}</div>
+            <div class="stat-label">کاربران</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon icon-purple">🛒</div>
+        <div class="stat-body">
+            <div class="stat-value">{{ "{:,}".format(total_orders) }}</div>
+            <div class="stat-label">سفارشات</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon icon-green">💰</div>
+        <div class="stat-body">
+            <div class="stat-value">{{ "{:,}".format(total_revenue) }} <span class="unit">تومان</span></div>
+            <div class="stat-label">درآمد کل</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon icon-yellow">📈</div>
+        <div class="stat-body">
+            <div class="stat-value">{{ "{:,}".format(today_revenue) }} <span class="unit">تومان</span></div>
+            <div class="stat-label">درآمد امروز</div>
+        </div>
+    </div>
+
+    <div class="stat-card {% if pending_count > 0 %}stat-card-alert{% endif %}">
+        <div class="stat-icon icon-red">⏳</div>
+        <div class="stat-body">
+            <div class="stat-value">{{ pending_count }}</div>
+            <div class="stat-label">پرداخت معلق</div>
+        </div>
+        {% if pending_count > 0 %}
+        <a href="/payments" class="stat-cta">بررسی کن ←</a>
+        {% endif %}
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon icon-teal">💳</div>
+        <div class="stat-body">
+            <div class="stat-value">{{ "{:,}".format(total_wallet) }} <span class="unit">تومان</span></div>
+            <div class="stat-label">موجودی کل کیف پول‌ها</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

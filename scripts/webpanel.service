@@ -1,0 +1,16 @@
+[Unit]
+Description=VPN Bot Web Admin Panel
+After=network.target vpnbot.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory={{BOT_DIR}}/webpanel
+ExecStart={{BOT_DIR}}/.venv/bin/python3 -m uvicorn app:app --host 0.0.0.0 --port {{PANEL_PORT}}
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

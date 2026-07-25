@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}کانال اجباری{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>عضویت اجباری در کانال</h1>
+    <p class="page-sub">پیش از استفاده از بات، عضویت کاربر در کانال بررسی می‌شود</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">📢 وضعیت</h2>
+    <p class="muted-text" style="margin-bottom: 14px;">
+        وضعیت فعلی:
+        {% if channel_id and channel_id != "0" %}
+            <span class="badge badge-purchase">فعال</span>
+        {% else %}
+            <span class="badge badge-renew">غیرفعال</span>
+        {% endif %}
+    </p>
+    <form method="post" action="/settings/channel/disable" style="display:inline;">
+        <button type="submit" class="btn btn-sm">غیرفعال کردن</button>
+    </form>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">⚙️ تنظیمات کانال</h2>
+    <form method="post" action="/settings/channel" class="form-grid">
+        <div class="field">
+            <label>آیدی عددی کانال (مثال: -1001234567890)</label>
+            <input type="text" name="channel_id" value="{{ channel_id if channel_id != '0' else '' }}" placeholder="-1001234567890">
+        </div>
+        <div class="field">
+            <label>لینک دعوت کانال</label>
+            <input type="text" name="channel_invite" value="{{ channel_invite }}" placeholder="https://t.me/yourchannel">
+        </div>
+        <button type="submit" class="btn btn-primary">💾 ذخیره و ری‌استارت بات</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}پیام همگانی{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>پیام همگانی</h1>
+    <p class="page-sub">ارسال پیام به تمام کاربران ربات ({{ user_count }} نفر)</p>
+</div>
+
+<div class="panel-card">
+    {% if result %}
+    <div class="alert alert-success">
+        ✅ ارسال تمام شد — موفق: {{ result.sent }} | ناموفق: {{ result.failed }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/broadcast/send" onsubmit="return confirm('پیام برای {{ user_count }} کاربر ارسال شود؟');">
+        <div class="field">
+            <label>متن پیام</label>
+            <textarea name="message" rows="6" required placeholder="متن پیام همگانی را اینجا بنویسید..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">📢 ارسال به همه</button>
+    </form>
+</div>
+{% endblock %}

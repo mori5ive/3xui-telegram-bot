@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}پنل (3X-UI){% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>تنظیمات پنل 3X-UI</h1>
+    <p class="page-sub">اتصال به پنل و انتخاب اینباندها برای ساخت کلاینت</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">🌐 اطلاعات اتصال به پنل</h2>
+    <form method="post" action="/settings/panel/connection" class="form-grid">
+        <div class="field">
+            <label>آدرس پنل (بدون / در آخر)</label>
+            <input type="text" name="panel_url" value="{{ panel_url }}" placeholder="https://example.com:2053" required>
+        </div>
+        <div class="field">
+            <label>مسیر پنل (webBasePath)</label>
+            <input type="text" name="panel_path" value="{{ panel_path }}" placeholder="/randompath" required>
+        </div>
+        <div class="field">
+            <label>API Token پنل</label>
+            <input type="text" name="panel_api_token" value="{{ panel_api_token }}" required>
+        </div>
+        <div class="field">
+            <label>آدرس Subscription (بدون / در آخر)</label>
+            <input type="text" name="sub_base_url" value="{{ sub_base_url }}" placeholder="https://example.com:2096/sub" required>
+        </div>
+        <button type="submit" class="btn btn-primary">💾 ذخیره و ری‌استارت بات</button>
+    </form>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">🧩 اینباندهای فعلی</h2>
+    {% if current_inbounds %}
+    <table class="data-table">
+        <thead>
+            <tr><th>Inbound ID</th><th>نام نمایشی</th><th>Flow</th></tr>
+        </thead>
+        <tbody>
+            {% for ib in current_inbounds %}
+            <tr>
+                <td><code>{{ ib.id }}</code></td>
+                <td>{{ ib.remark }}</td>
+                <td>{{ ib.flow if ib.flow else "—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted-text">هنوز هیچ اینباندی تنظیم نشده است.</p>
+    {% endif %}
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">📡 دریافت اینباندها از پنل</h2>
+    <form method="post" action="/settings/panel/fetch">
+        <button type="submit" class="btn btn-primary">🔄 دریافت لیست اینباند از پنل</button>
+    </form>
+
+    {% if fetch_error %}
+    <div class="toast toast-error" style="margin-top: 16px;">{{ fetch_error }}</div>
+    {% endif %}
+
+    {% if fetched_inbounds %}
+    <form method="post" action="/settings/panel/inbounds" style="margin-top: 20px;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Inbound ID</th>
+                    <th>پروتکل</th>
+                    <th>پورت</th>
+                    <th>نام نمایشی</th>
+                    <th>Vision (Reality)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ib in fetched_inbounds %}
+                <tr>
+                    <td>
+                        <input type="checkbox" name="selected_id" value="{{ ib.id }}">
+                        <input type="hidden" name="remark_{{ ib.id }}" value="{{ ib.remark }}">
+                    </td>
+                    <td><code>{{ ib.id }}</code></td>
+                    <td>{{ ib.protocol }}</td>
+                    <td>{{ ib.port }}</td>
+                    <td>{{ ib.remark }}</td>
+                    <td>
+                        {% if ib.is_reality %}
+                        <label class="inline-check">
+                            <input type="checkbox" name="vision_id" value="{{ ib.id }}"> فعال باشد
+                        </label>
+                        {% else %}
+                        <span class="muted-text">غیر Reality</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary" style="margin-top: 14px;">
+            💾 ذخیره انتخاب و ری‌استارت بات
+        </button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}پروکسی SOCKS5{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>پروکسی SOCKS5</h1>
+    <p class="page-sub">برای دور زدن تحریم در تماس با تلگرام و پنل</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">🌐 وضعیت</h2>
+    <p class="muted-text" style="margin-bottom: 14px;">
+        وضعیت فعلی:
+        {% if proxy_host and proxy_port %}
+            <span class="badge badge-purchase">فعال ({{ proxy_host }}:{{ proxy_port }})</span>
+        {% else %}
+            <span class="badge badge-renew">غیرفعال (اتصال مستقیم)</span>
+        {% endif %}
+    </p>
+    <form method="post" action="/settings/proxy/disable" style="display:inline;">
+        <button type="submit" class="btn btn-sm">غیرفعال کردن</button>
+    </form>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">⚙️ فعال‌سازی / تغییر پروکسی</h2>
+    <form method="post" action="/settings/proxy" class="form-grid">
+        <div class="field">
+            <label>هاست پروکسی</label>
+            <input type="text" name="proxy_host" value="{{ proxy_host }}" placeholder="127.0.0.1">
+        </div>
+        <div class="field">
+            <label>پورت پروکسی</label>
+            <input type="text" name="proxy_port" value="{{ proxy_port }}" placeholder="1010">
+        </div>
+        <button type="submit" class="btn btn-primary">💾 ذخیره و ری‌استارت بات</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}تنظیمات{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>تنظیمات</h1>
+    <p class="page-sub">قیمت‌گذاری و سیستم‌های روشن/خاموش‌شدنی</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">💎 قیمت‌گذاری (تومان به ازای هر گیگابایت)</h2>
+    <form method="post" action="/settings/prices" class="form-grid">
+        <div class="field">
+            <label>حد رنج اول (گیگابایت)</label>
+            <input type="number" name="tier1" value="{{ prices.tier1_max }}" required>
+        </div>
+        <div class="field">
+            <label>حد رنج دوم (گیگابایت)</label>
+            <input type="number" name="tier2" value="{{ prices.tier2_max }}" required>
+        </div>
+        <div class="field">
+            <label>قیمت رنج اول (کمتر از حد اول)</label>
+            <input type="number" name="low" value="{{ prices.low }}" required>
+        </div>
+        <div class="field">
+            <label>قیمت رنج دوم (بین حد اول و دوم)</label>
+            <input type="number" name="mid" value="{{ prices.mid }}" required>
+        </div>
+        <div class="field">
+            <label>قیمت رنج سوم (بیشتر از حد دوم)</label>
+            <input type="number" name="high" value="{{ prices.high }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">ذخیره قیمت‌ها</button>
+    </form>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">🔀 سیستم‌های روشن/خاموش‌شدنی</h2>
+    <div class="toggle-row">
+        <div class="toggle-info">
+            <div class="toggle-name">🔗 سیستم دعوت (Referral)</div>
+            <div class="toggle-desc">پاداش ۵٪ برای دعوت‌کننده در اولین شارژ کیف پول کاربر دعوت‌شده</div>
+        </div>
+        <form method="post" action="/settings/toggle">
+            <input type="hidden" name="key" value="referral_enabled">
+            <input type="hidden" name="value" value="{{ '0' if referral_enabled == '1' else '1' }}">
+            <button type="submit" class="toggle-switch {{ 'on' if referral_enabled == '1' else 'off' }}">
+                {{ 'روشن' if referral_enabled == '1' else 'خاموش' }}
+            </button>
+        </form>
+    </div>
+    <div class="toggle-row">
+        <div class="toggle-info">
+            <div class="toggle-name">🎁 تست رایگان</div>
+            <div class="toggle-desc">امکان دریافت سرویس تست رایگان یک‌بار برای هر کاربر</div>
+        </div>
+        <form method="post" action="/settings/toggle">
+            <input type="hidden" name="key" value="trial_enabled">
+            <input type="hidden" name="value" value="{{ '0' if trial_enabled == '1' else '1' }}">
+            <button type="submit" class="toggle-switch {{ 'on' if trial_enabled == '1' else 'off' }}">
+                {{ 'روشن' if trial_enabled == '1' else 'خاموش' }}
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

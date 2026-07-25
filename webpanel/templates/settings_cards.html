@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}شماره کارت‌ها{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>شماره کارت‌های پرداخت</h1>
+    <p class="page-sub">این شماره‌ها هنگام شارژ کیف پول به کاربر نمایش داده می‌شوند</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">💳 کارت‌های فعلی</h2>
+    {% if cards %}
+    <table class="data-table">
+        <thead>
+            <tr><th>#</th><th>شماره کارت</th><th>به نام</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for c in cards %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><code>{{ c.number }}</code></td>
+                <td>{{ c.name }}</td>
+                <td>
+                    <form method="post" action="/settings/cards/remove" onsubmit="return confirm('این کارت حذف شود؟');">
+                        <input type="hidden" name="index" value="{{ loop.index0 }}">
+                        <button type="submit" class="btn btn-reject btn-sm">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted-text">هنوز هیچ کارتی ثبت نشده است.</p>
+    {% endif %}
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">➕ افزودن کارت جدید</h2>
+    <form method="post" action="/settings/cards/add" class="form-grid">
+        <div class="field">
+            <label>شماره کارت</label>
+            <input type="text" name="number" required>
+        </div>
+        <div class="field">
+            <label>به نام</label>
+            <input type="text" name="name" required>
+        </div>
+        <button type="submit" class="btn btn-primary">➕ افزودن</button>
+    </form>
+</div>
+{% endblock %}

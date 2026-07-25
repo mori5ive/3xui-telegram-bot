@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}کدهای تخفیف{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>کدهای تخفیف</h1>
+    <p class="page-sub">ساخت، مشاهده و حذف کدهای تخفیف</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">➕ ساخت کد جدید</h2>
+    <form method="post" action="/codes/add" class="form-grid">
+        <div class="field">
+            <label>کد تخفیف</label>
+            <input type="text" name="code" placeholder="SALE20" required style="direction: ltr; text-align: left;">
+        </div>
+        <div class="field">
+            <label>درصد تخفیف</label>
+            <input type="number" name="percent" min="1" max="100" required>
+        </div>
+        <div class="field">
+            <label>حداکثر تعداد استفاده</label>
+            <input type="number" name="max_uses" min="1" value="1" required>
+        </div>
+        <button type="submit" class="btn btn-primary">ساخت کد</button>
+    </form>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">📋 کدهای موجود</h2>
+    {% if not codes %}
+    <p class="muted-text">هیچ کد تخفیفی ثبت نشده.</p>
+    {% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>کد</th>
+                <th>درصد</th>
+                <th>استفاده‌شده</th>
+                <th>حداکثر</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in codes %}
+            <tr>
+                <td><code>{{ c.code }}</code></td>
+                <td>{{ c.percent }}٪</td>
+                <td>{{ c.used_count }}</td>
+                <td>{{ c.max_uses }}</td>
+                <td>
+                    <form method="post" action="/codes/{{ c.code }}/delete" onsubmit="return confirm('حذف کد {{ c.code }}؟');">
+                        <button type="submit" class="btn btn-reject btn-sm">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

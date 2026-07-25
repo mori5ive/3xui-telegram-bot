@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}کانال لاگ{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>کانال لاگ</h1>
+    <p class="page-sub">گزارش خرید/تمدید/شارژ/دعوت به این کانال ارسال می‌شود</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">📝 وضعیت</h2>
+    <p class="muted-text" style="margin-bottom: 14px;">
+        وضعیت فعلی:
+        {% if log_channel_id and log_channel_id != "0" %}
+            <span class="badge badge-purchase">فعال ({{ log_channel_id }})</span>
+        {% else %}
+            <span class="badge badge-renew">غیرفعال</span>
+        {% endif %}
+    </p>
+    <form method="post" action="/settings/log/disable" style="display:inline;">
+        <button type="submit" class="btn btn-sm">غیرفعال کردن</button>
+    </form>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">⚙️ فعال‌سازی / تغییر کانال</h2>
+    <form method="post" action="/settings/log" class="form-grid">
+        <div class="field">
+            <label>آیدی عددی کانال لاگ (بات باید ادمین آن باشد)</label>
+            <input type="text" name="log_channel_id" value="{{ log_channel_id if log_channel_id != '0' else '' }}" placeholder="-1001234567890">
+        </div>
+        <button type="submit" class="btn btn-primary">💾 ذخیره و ری‌استارت بات</button>
+    </form>
+</div>
+{% endblock %}

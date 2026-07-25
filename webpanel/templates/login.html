@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}ورود{% endblock %}
+{% block auth_content %}
+<div class="login-screen">
+    <div class="login-card">
+        <div class="login-icon">🛡️</div>
+        <h1>پنل مدیریت VPN Bot</h1>
+        <p class="login-sub">برای ورود، اطلاعات حساب ادمین را وارد کنید</p>
+
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/login" class="login-form">
+            <div class="field">
+                <label>نام کاربری</label>
+                <input type="text" name="username" autocomplete="username" required autofocus>
+            </div>
+            <div class="field">
+                <label>رمز عبور</label>
+                <input type="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">ورود</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

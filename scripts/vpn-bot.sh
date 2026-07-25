@@ -1,6 +1,8 @@
 #!/bin/bash
 BOT_DIR="{{BOT_DIR}}"
 SERVICE="vpnbot"
+WEBPANEL_SERVICE="webpanel"
+source "$BOT_DIR/scripts/utils.sh" 2>/dev/null || true
 BACKUP_DIR="${BOT_DIR}/backups"
 mkdir -p "$BACKUP_DIR"
 
@@ -213,332 +215,102 @@ uninstall_bot() {
     fi
 }
 
-settings_bot() {
+
+webpanel_status_line() {
+    if systemctl is-active --quiet $WEBPANEL_SERVICE 2>/dev/null; then
+        echo -e "${C_GREEN}${C_BOLD}â RUNNING${C_NC}"
+    else
+        echo -e "${C_RED}${C_BOLD}â STOPPED${C_NC}"
+    fi
+}
+
+webpanel_link() {
+    local port ip
+    port=$(env_get WEBPANEL_PORT)
+    ip=$(get_public_ip 2>/dev/null)
+    echo "http://${ip:-YOUR-SERVER-IP}:${port}/"
+}
+
+webpanel_userpass() {
     clear
-    echo -e "${C_CYAN}--- Bot & Admins ---${C_NC}"
-    echo "Token: $(mask "$(env_get BOT_TOKEN)")"
-    echo "Admin IDs: $(env_get ADMIN_IDS)"
+    echo -e "${C_CYAN}--- Web Panel: Username / Password ---${C_NC}"
+    echo "Current username: $(env_get PANEL_ADMIN_USER)"
     echo ""
-    echo "1) Change bot token"
-    echo "2) Change admin IDs"
+    echo "1) Change username"
+    echo "2) Change password"
     echo "0) Back"
     read -rp "Choose: " C
     case $C in
-        1) read -rp "New bot token: " V; env_set BOT_TOKEN "$V"; maybe_restart ;;
-        2) read -rp "New admin IDs (comma-separated): " V; env_set ADMIN_IDS "$V"; maybe_restart ;;
+        1) read -rp "New username: " V; env_set PANEL_ADMIN_USER "$V"; systemctl restart $WEBPANEL_SERVICE; ok "Updated." ;;
+        2) read -rsp "New password: " V; echo ""; env_set PANEL_ADMIN_PASS "$V"; systemctl restart $WEBPANEL_SERVICE; ok "Updated." ;;
     esac
 }
 
-settings_channel() {
+webpanel_info() {
     clear
-    echo -e "${C_CYAN}--- Mandatory Channel ---${C_NC}"
-    echo "Channel ID: $(env_get REQUIRED_CHANNEL_ID)"
-    echo "Invite link: $(env_get REQUIRED_CHANNEL_INVITE)"
-    echo ""
-    echo "1) Enable / change channel ID"
-    echo "2) Change invite link"
-    echo "3) Disable mandatory channel"
-    echo "0) Back"
-    read -rp "Choose: " C
-    case $C in
-        1) read -rp "Channel numeric ID: " V; env_set REQUIRED_CHANNEL_ID "$V"; maybe_restart ;;
-        2) read -rp "New invite link: " V; env_set REQUIRED_CHANNEL_INVITE "$V"; maybe_restart ;;
-        3) env_set REQUIRED_CHANNEL_ID "0"; env_set REQUIRED_CHANNEL_INVITE ""; ok "Disabled."; maybe_restart ;;
-    esac
+    echo -e "${C_CYAN}--- Web Panel: Info ---${C_NC}"
+    echo "Status: $(webpanel_status_line)"
+    echo "Username: $(env_get PANEL_ADMIN_USER)"
+    echo "Link: $(webpanel_link)"
 }
 
-settings_panel() {
+webpanel_reset() {
     clear
-    echo -e "${C_CYAN}--- Panel (3X-UI) ---${C_NC}"
-    echo "URL: $(env_get PANEL_URL)"
-    echo "Path: $(env_get PANEL_PATH)"
-    echo "API token: $(mask "$(env_get PANEL_API_TOKEN)")"
-    echo "Subscription URL: $(env_get SUB_BASE_URL)"
-    echo ""
-    echo "1) Change panel URL"
-    echo "2) Change panel path"
-    echo "3) Change API token"
-    echo "4) Change subscription URL"
-    echo "0) Back"
-    read -rp "Choose: " C
-    case $C in
-        1) read -rp "New panel URL (no trailing slash): " V; env_set PANEL_URL "${V%/}"; maybe_restart ;;
-        2) read -rp "New panel path (no trailing slash): " V; env_set PANEL_PATH "${V%/}"; maybe_restart ;;
-        3) read -rp "New API token: " V; env_set PANEL_API_TOKEN "$V"; maybe_restart ;;
-        4) read -rp "New subscription URL (no trailing slash): " V; env_set SUB_BASE_URL "${V%/}"; maybe_restart ;;
-    esac
+    warn "This restarts the web panel service."
+    read -rp "Are you sure? (y/n): " CONFIRM
+    [ "$CONFIRM" != "y" ] && return
+    systemctl restart $WEBPANEL_SERVICE
+    ok "Web panel restarted."
 }
 
-settings_inbounds() {
+webpanel_change_port() {
     clear
-    echo -e "${C_CYAN}--- Inbounds ---${C_NC}"
-    echo "Format: id:remark:flow (flow empty for non-Reality inbounds)"
+    echo -e "${C_CYAN}--- Web Panel: Change Port ---${C_NC}"
+    echo "Current port: $(env_get WEBPANEL_PORT)"
     echo ""
-    CURRENT=$(env_get INBOUNDS)
-    IFS=',' read -ra ARR <<< "$CURRENT"
-    i=1
-    for e in "${ARR[@]}"; do
-        [ -n "$e" ] && echo "$i) $e"
-        i=$((i+1))
+    NEW_PORT=""
+    while [ -z "$NEW_PORT" ]; do
+        read -rp "New port: " NEW_PORT
+        if ! [[ "$NEW_PORT" =~ ^[0-9]+$ ]]; then
+            warn "Please enter a numeric port."
+            NEW_PORT=""
+        elif ! is_port_free "$NEW_PORT"; then
+            warn "Port $NEW_PORT is already in use."
+            NEW_PORT=""
+        fi
     done
-    echo ""
-    echo "1) Fetch inbound list from panel and rebuild selection"
-    echo "2) Add one inbound manually"
-    echo "3) Remove an inbound by number"
-    echo "4) Clear all (fallback to single INBOUND_ID)"
-    echo "0) Back"
-    read -rp "Choose: " C
-
-    case $C in
-        1)
-            P_URL=$(env_get PANEL_URL)
-            P_PATH=$(env_get PANEL_PATH)
-            P_TOKEN=$(env_get PANEL_API_TOKEN)
-            echo "Fetching inbounds..."
-            JSON=$(curl -sk --max-time 15 -H "Authorization: Bearer ${P_TOKEN}" "${P_URL}${P_PATH}/panel/api/inbounds/list" 2>/dev/null)
-            if ! echo "$JSON" | grep -q '"success":true'; then
-                err "Could not fetch inbounds from the panel."
-                return
-            fi
-            
-            python3 "$BOT_DIR/scripts/parse_panel.py" --action list --json "$JSON"
-            echo ""
-            read -rp "Enter the inbound ID(s) to include, comma-separated (use the number after id=): " PICKS
-
-            HAS_REALITY=$(python3 - "$JSON" "$PICKS" << 'PYEOF'
-import json, sys
-data = json.loads(sys.argv[1])
-picks = [p.strip() for p in sys.argv[2].split(",") if p.strip()]
-obj = data.get("obj", [])
-for inb in obj:
-    if str(inb.get("id")) in picks:
-        ss_raw = inb.get("streamSettings", {})
-        if isinstance(ss_raw, str):
-            try: ss = json.loads(ss_raw)
-            except Exception: ss = {}
-        else: ss = ss_raw or {}
-        if ss.get("security") == "reality":
-            print("y")
-            sys.exit(0)
-print("n")
-PYEOF
-)
-            FLOW=""
-            if [ "$HAS_REALITY" == "y" ]; then
-                echo ""
-                read -rp "One or more selected inbounds are Reality. Enable Vision flow for them? (y/n): " ISV
-                [ "$ISV" == "y" ] && FLOW="xtls-rprx-vision"
-            fi
-            NEW_INBOUNDS=""
-            IFS=',' read -ra PICK_ARR <<< "$PICKS"
-            for idx in "${PICK_ARR[@]}"; do
-                idx="$(echo -n "$idx" | xargs)"
-                [ -z "$idx" ] && continue
-                LINE=$(python3 "$BOT_DIR/scripts/parse_panel.py" --action validate --json "$JSON" --id "$idx")
-                [ "$LINE" == "INVALID" ] && { warn "Invalid: $idx"; continue; }
-                IB_ID=$(echo "$LINE" | cut -d'|' -f1)
-                IB_REMARK=$(echo "$LINE" | cut -d'|' -f2)
-                IB_IS_REALITY=$(echo "$LINE" | cut -d'|' -f3)
-                if [ "$IB_IS_REALITY" == "y" ]; then
-                    ENTRY_FLOW="$FLOW"
-                else
-                    ENTRY_FLOW=""
-                fi
-                ENTRY="${IB_ID}:${IB_REMARK}:${ENTRY_FLOW}"
-                [ -z "$NEW_INBOUNDS" ] && NEW_INBOUNDS="$ENTRY" || NEW_INBOUNDS="${NEW_INBOUNDS},${ENTRY}"
-            done
-            if [ -n "$NEW_INBOUNDS" ]; then
-                env_set INBOUNDS "$NEW_INBOUNDS"
-                env_set INBOUND_ID "${NEW_INBOUNDS%%:*}"
-                ok "Inbounds updated."
-                maybe_restart
-            fi
-            ;;
-        2)
-            read -rp "Inbound ID: " IB_ID
-            read -rp "Display name (remark): " IB_REMARK
-            read -rp "Enable Vision flow? (y/n): " ISV
-            FLOW=""
-            [ "$ISV" == "y" ] && FLOW="xtls-rprx-vision"
-            ENTRY="${IB_ID}:${IB_REMARK}:${FLOW}"
-            CURRENT=$(env_get INBOUNDS)
-            if [ -z "$CURRENT" ]; then NEW="$ENTRY"
-            else NEW="${CURRENT},${ENTRY}"
-            fi
-            env_set INBOUNDS "$NEW"
-            env_set INBOUND_ID "${NEW%%:*}"
-            ok "Added."
-            maybe_restart
-            ;;
-        3)
-            read -rp "Enter the number to remove: " N
-            CURRENT=$(env_get INBOUNDS)
-            IFS=',' read -ra ARR <<< "$CURRENT"
-            NEW=""
-            i=1
-            for e in "${ARR[@]}"; do
-                if [ "$i" != "$N" ]; then
-                    [ -z "$NEW" ] && NEW="$e" || NEW="${NEW},${e}"
-                fi
-                i=$((i+1))
-            done
-            env_set INBOUNDS "$NEW"
-            [ -n "$NEW" ] && env_set INBOUND_ID "${NEW%%:*}"
-            ok "Removed."
-            maybe_restart
-            ;;
-        4)
-            read -rp "Fallback single Inbound ID: " V
-            read -rp "Enable Vision flow? (y/n): " ISV
-            FLOW=""
-            [ "$ISV" == "y" ] && FLOW="xtls-rprx-vision"
-            env_set INBOUNDS "${V}:default:${FLOW}"
-            env_set INBOUND_ID "$V"
-            ok "Cleared."
-            maybe_restart
-            ;;
-    esac
+    env_set WEBPANEL_PORT "$NEW_PORT"
+    sed -i "s|--port [0-9]*|--port ${NEW_PORT}|" /etc/systemd/system/webpanel.service
+    systemctl daemon-reload
+    systemctl restart $WEBPANEL_SERVICE
+    ok "Port changed. New link: $(webpanel_link)"
 }
 
-settings_proxy() {
-    clear
-    echo -e "${C_CYAN}--- SOCKS5 Proxy ---${C_NC}"
-    echo "Host: $(env_get PROXY_HOST)"
-    echo "Port: $(env_get PROXY_PORT)"
-    echo ""
-    echo "1) Enable / change proxy"
-    echo "2) Disable proxy"
-    echo "0) Back"
-    read -rp "Choose: " C
-    case $C in
-        1) read -rp "Proxy host: " H; read -rp "Proxy port: " P; env_set PROXY_HOST "$H"; env_set PROXY_PORT "$P"; maybe_restart ;;
-        2) env_set PROXY_HOST ""; env_set PROXY_PORT ""; ok "Disabled."; maybe_restart ;;
-    esac
-}
-
-settings_log() {
-    clear
-    echo -e "${C_CYAN}--- Log Channel ---${C_NC}"
-    echo "Channel ID: $(env_get LOG_CHANNEL_ID)"
-    echo ""
-    echo "1) Enable / change log channel"
-    echo "2) Disable log channel"
-    echo "0) Back"
-    read -rp "Choose: " C
-    case $C in
-        1) read -rp "Log channel numeric ID: " V; env_set LOG_CHANNEL_ID "$V"; maybe_restart ;;
-        2) env_set LOG_CHANNEL_ID "0"; ok "Disabled."; maybe_restart ;;
-    esac
-}
-
-settings_reminder() {
-    clear
-    echo -e "${C_CYAN}--- Expiry Reminder ---${C_NC}"
-    echo "Enabled: $(env_get REMINDER_ENABLED)"
-    echo "GB threshold: $(env_get REMINDER_GB_THRESHOLD)"
-    echo "Days threshold: $(env_get REMINDER_DAYS_THRESHOLD)"
-    echo ""
-    echo "1) Enable"
-    echo "2) Disable"
-    echo "3) Change GB threshold"
-    echo "4) Change days threshold"
-    echo "0) Back"
-    read -rp "Choose: " C
-    case $C in
-        1) env_set REMINDER_ENABLED "y"; ok "Enabled."; maybe_restart ;;
-        2) env_set REMINDER_ENABLED "n"; ok "Disabled."; maybe_restart ;;
-        3) read -rp "New GB threshold: " V; env_set REMINDER_GB_THRESHOLD "$V"; maybe_restart ;;
-        4) read -rp "New days threshold: " V; env_set REMINDER_DAYS_THRESHOLD "$V"; maybe_restart ;;
-    esac
-}
-
-settings_cards() {
-    clear
-    echo -e "${C_CYAN}--- Payment Cards ---${C_NC}"
-    CURRENT=$(env_get CARDS)
-    IFS=',' read -ra ARR <<< "$CURRENT"
-    i=1
-    for e in "${ARR[@]}"; do
-        [ -n "$e" ] && echo "$i) $e"
-        i=$((i+1))
-    done
-    echo ""
-    echo "1) Add a card"
-    echo "2) Remove a card by number"
-    echo "3) Replace all cards"
-    echo "0) Back"
-    read -rp "Choose: " C
-    case $C in
-        1)
-            read -rp "Card number: " NUM
-            read -rp "Cardholder name: " NAME
-            [ -z "$CURRENT" ] && NEW="${NUM}:${NAME}" || NEW="${CURRENT},${NUM}:${NAME}"
-            env_set CARDS "$NEW"
-            ok "Added."
-            maybe_restart
-            ;;
-        2)
-            read -rp "Number to remove: " N
-            NEW=""
-            i=1
-            for e in "${ARR[@]}"; do
-                if [ "$i" != "$N" ]; then
-                    [ -z "$NEW" ] && NEW="$e" || NEW="${NEW},${e}"
-                fi
-                i=$((i+1))
-            done
-            env_set CARDS "$NEW"
-            ok "Removed."
-            maybe_restart
-            ;;
-        3)
-            read -rp "How many cards: " CNT
-            NEW=""
-            for ((k=1; k<=CNT; k++)); do
-                read -rp "Card number: " NUM
-                read -rp "Cardholder name: " NAME
-                [ -z "$NEW" ] && NEW="${NUM}:${NAME}" || NEW="${NEW},${NUM}:${NAME}"
-            done
-            env_set CARDS "$NEW"
-            ok "Cards replaced."
-            maybe_restart
-            ;;
-    esac
-}
-
-edit_env() {
+webpanel_settings() {
     while true; do
         clear
-        echo -e "${C_CYAN}${C_BOLD}--- Edit Settings ---${C_NC}"
-        echo "1) Bot & Admins"
-        echo "2) Mandatory Channel"
-        echo "3) Panel (3X-UI)"
-        echo "4) Inbounds / Servers"
-        echo "5) SOCKS5 Proxy"
-        echo "6) Log Channel"
-        echo "7) Expiry Reminder"
-        echo "8) Payment Cards"
-        echo "9) Raw .env editor (advanced)"
+        echo -e "${C_CYAN}${C_BOLD}--- Web Panel Settings ---${C_NC}"
+        echo "1) Username / Password"
+        echo "2) Change port"
+        echo "3) Info (panel link)"
+        echo "4) Reset (restart panel)"
         echo "0) Back to main menu"
         read -rp "Choose: " C
         case $C in
-            1) settings_bot; pause ;;
-            2) settings_channel; pause ;;
-            3) settings_panel; pause ;;
-            4) settings_inbounds; pause ;;
-            5) settings_proxy; pause ;;
-            6) settings_log; pause ;;
-            7) settings_reminder; pause ;;
-            8) settings_cards; pause ;;
-            9)
-                EDITOR_BIN="${EDITOR:-nano}"
-                command -v "$EDITOR_BIN" &> /dev/null || EDITOR_BIN="vi"
-                "$EDITOR_BIN" "$BOT_DIR/.env"
-                maybe_restart
-                ;;
+            1) webpanel_userpass; pause ;;
+            2) webpanel_change_port; pause ;;
+            3) webpanel_info; pause ;;
+            4) webpanel_reset; pause ;;
             0) break ;;
         esac
     done
+}
+
+edit_env() {
+    EDITOR_BIN="${EDITOR:-nano}"
+    command -v "$EDITOR_BIN" &> /dev/null || EDITOR_BIN="vi"
+    "$EDITOR_BIN" "$BOT_DIR/.env"
+    maybe_restart
 }
 
 show_menu() {
@@ -546,7 +318,8 @@ show_menu() {
     echo -e "${C_BLUE}${C_BOLD}╔══════════════════════════════════════════════════╗${C_NC}"
     echo -e "${C_BLUE}${C_BOLD}║          🤖  VPN Sales Bot — Control Panel         ║${C_NC}"
     echo -e "${C_BLUE}${C_BOLD}╚══════════════════════════════════════════════════╝${C_NC}"
-    echo -e "  Service status: $(status_line)"
+    echo -e "  Bot status:    $(status_line)"
+    echo -e "  Web panel:     $(webpanel_status_line)  ($(webpanel_link 2>/dev/null))"
     echo -e "${C_DIM}──────────────────────────────────────────────────────${C_NC}"
     echo -e "  ${C_GREEN}1)${C_NC}  🟢 Start bot"
     echo -e "  ${C_GREEN}2)${C_NC}  🔴 Stop bot"
@@ -554,13 +327,14 @@ show_menu() {
     echo -e "  ${C_GREEN}4)${C_NC}  📊 Service status"
     echo -e "  ${C_GREEN}5)${C_NC}  📜 Live logs (Ctrl+C to exit)"
     echo -e "  ${C_GREEN}6)${C_NC}  📄 Last 100 log lines"
-    echo -e "  ${C_GREEN}7)${C_NC}  ⚙️  Edit settings"
+    echo -e "  ${C_GREEN}7)${C_NC}  ⚙️  Raw .env editor"
     echo -e "  ${C_GREEN}8)${C_NC}  💾 Create backup"
     echo -e "  ${C_GREEN}9)${C_NC}  ♻️  Restore from backup"
     echo -e "  ${C_GREEN}10)${C_NC} 📈 Quick database stats"
     echo -e "  ${C_GREEN}11)${C_NC} 📦 Update Python packages"
     echo -e "  ${C_GREEN}12)${C_NC} 🩺 Health check"
     echo -e "  ${C_GREEN}13)${C_NC} 🗑  Uninstall CLI & service"
+    echo -e "  ${C_GREEN}14)${C_NC} 🌐 Web Panel Settings"
     echo -e "  ${C_RED}0)${C_NC}  Exit"
     echo -e "${C_DIM}──────────────────────────────────────────────────────${C_NC}"
 }
@@ -597,6 +371,7 @@ while true; do
         11) reinstall_deps; pause ;;
         12) health_check; pause ;;
         13) uninstall_bot; exit 0 ;;
+        14) webpanel_settings ;;
         0) exit 0 ;;
         *) err "Invalid option."; pause ;;
     esac

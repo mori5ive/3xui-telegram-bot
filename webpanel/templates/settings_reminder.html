@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}یادآوری انقضا{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>یادآوری انقضا</h1>
+    <p class="page-sub">اطلاع‌رسانی خودکار وقتی حجم یا زمان سرویس رو به اتمام است</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">⏰ وضعیت</h2>
+    <p class="muted-text" style="margin-bottom: 14px;">
+        وضعیت فعلی:
+        {% if reminder_enabled == "y" %}
+            <span class="badge badge-purchase">فعال</span>
+        {% else %}
+            <span class="badge badge-renew">غیرفعال</span>
+        {% endif %}
+    </p>
+    <div style="display:flex; gap:10px;">
+        <form method="post" action="/settings/reminder/toggle">
+            <input type="hidden" name="enabled" value="{{ 'n' if reminder_enabled == 'y' else 'y' }}">
+            <button type="submit" class="btn btn-sm">
+                {{ "غیرفعال کردن" if reminder_enabled == "y" else "فعال کردن" }}
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">⚙️ آستانه‌های یادآوری</h2>
+    <form method="post" action="/settings/reminder" class="form-grid">
+        <div class="field">
+            <label>یادآوری وقتی حجم باقی‌مانده کمتر یا مساوی (GB)</label>
+            <input type="number" name="gb_threshold" value="{{ gb_threshold }}" min="0" required>
+        </div>
+        <div class="field">
+            <label>یادآوری وقتی روزهای باقی‌مانده کمتر یا مساوی</label>
+            <input type="number" name="days_threshold" value="{{ days_threshold }}" min="0" required>
+        </div>
+        <button type="submit" class="btn btn-primary">💾 ذخیره و ری‌استارت بات</button>
+    </form>
+</div>
+{% endblock %}

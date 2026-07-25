@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}پرداخت‌های معلق{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>پرداخت‌های معلق</h1>
+    <p class="page-sub">{{ payments|length }} پرداخت در انتظار بررسی</p>
+</div>
+
+{% if not payments %}
+<div class="empty-state">
+    <div class="empty-icon">✅</div>
+    <p>هیچ پرداخت معلقی وجود ندارد.</p>
+</div>
+{% else %}
+<div class="payments-grid">
+    {% for p in payments %}
+    <div class="payment-card">
+        <div class="payment-header">
+            <span class="badge badge-{{ p.purpose }}">
+                {% if p.purpose == 'wallet' %}شارژ کیف پول
+                {% elif p.purpose == 'purchase' %}خرید سرویس
+                {% elif p.purpose == 'renew' %}تمدید سرویس
+                {% else %}{{ p.purpose }}{% endif %}
+            </span>
+            <span class="payment-id">#{{ p.id }}</span>
+        </div>
+
+        <div class="payment-body">
+            <div class="payment-row">
+                <span class="row-label">کاربر</span>
+                <span class="row-value"><code>{{ p.telegram_id }}</code></span>
+            </div>
+            <div class="payment-row">
+                <span class="row-label">مبلغ</span>
+                <span class="row-value amount">{{ "{:,}".format(p.amount) }} تومان</span>
+            </div>
+            {% if p.meta.gb %}
+            <div class="payment-row">
+                <span class="row-label">حجم</span>
+                <span class="row-value">{{ p.meta.gb }} گیگابایت</span>
+            </div>
+            {% endif %}
+            {% if p.meta.service_name %}
+            <div class="payment-row">
+                <span class="row-label">نام سرویس</span>
+                <span class="row-value"><code>{{ p.meta.service_name }}</code></span>
+            </div>
+            {% endif %}
+            {% if p.meta.client_email %}
+            <div class="payment-row">
+                <span class="row-label">سرویس</span>
+                <span class="row-value"><code>{{ p.meta.client_email }}</code></span>
+            </div>
+            {% endif %}
+            <div class="payment-row">
+                <span class="row-label">زمان ثبت</span>
+                <span class="row-value muted">{{ p.created_at }}</span>
+            </div>
+        </div>
+
+        {% if p.receipt_file_id %}
+        <div class="receipt-box">
+            <img src="/payments/{{ p.id }}/receipt" alt="رسید پرداخت" class="receipt-thumb"
+                 loading="lazy" onclick="openLightbox('/payments/{{ p.id }}/receipt')">
+            <div class="receipt-caption">🧾 برای بزرگ‌نمایی کلیک کنید</div>
+        </div>
+        {% endif %}
+
+        <div class="payment-actions">
+            <form method="post" action="/payments/{{ p.id }}/approve" onsubmit="return confirm('تایید این پرداخت؟');">
+                <button type="submit" class="btn btn-approve">✅ تایید</button>
+            </form>
+            <form method="post" action="/payments/{{ p.id }}/reject" onsubmit="return confirm('رد این پرداخت؟');">
+                <button type="submit" class="btn btn-reject">❌ رد</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+    <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+    <img id="lightbox-img" src="" alt="رسید بزرگ">
+</div>
+
+<script>
+function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.getElementById('lightbox-img').src = '';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+});
+</script>
+{% endif %}
+{% endblock %}

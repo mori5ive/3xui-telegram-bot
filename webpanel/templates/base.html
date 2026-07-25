@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}پنل مدیریت{% endblock %} — VPN Bot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    {% if request.cookies.get('session') %}
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-icon">🛡️</span>
+                <span class="brand-name">VPN Bot</span>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %}">
+                    <span class="nav-icon">📊</span> داشبورد
+                </a>
+                <a href="/payments" class="nav-item {% if request.url.path == '/payments' %}active{% endif %}">
+                    <span class="nav-icon">💳</span> پرداخت‌های معلق
+                </a>
+                <a href="/settings" class="nav-item {% if request.url.path == '/settings' %}active{% endif %}">
+                    <span class="nav-icon">⚙️</span> تنظیمات
+                </a>
+                <a href="/settings/panel" class="nav-item {% if request.url.path == '/settings/panel' %}active{% endif %}">
+                    <span class="nav-icon">🌐</span> پنل (3X-UI)
+                </a>
+                <a href="/settings/bot" class="nav-item {% if request.url.path == '/settings/bot' %}active{% endif %}">
+                    <span class="nav-icon">🤖</span> بات و ادمین‌ها
+                </a>
+                <a href="/settings/channel" class="nav-item {% if request.url.path == '/settings/channel' %}active{% endif %}">
+                    <span class="nav-icon">📢</span> کانال اجباری
+                </a>
+                <a href="/settings/proxy" class="nav-item {% if request.url.path == '/settings/proxy' %}active{% endif %}">
+                    <span class="nav-icon">🌍</span> پروکسی SOCKS5
+                </a>
+                <a href="/settings/log" class="nav-item {% if request.url.path == '/settings/log' %}active{% endif %}">
+                    <span class="nav-icon">📝</span> کانال لاگ
+                </a>
+                <a href="/settings/reminder" class="nav-item {% if request.url.path == '/settings/reminder' %}active{% endif %}">
+                    <span class="nav-icon">⏰</span> یادآوری انقضا
+                </a>
+                <a href="/settings/cards" class="nav-item {% if request.url.path == '/settings/cards' %}active{% endif %}">
+                    <span class="nav-icon">💳</span> شماره کارت‌ها
+                </a>
+                <a href="/codes" class="nav-item {% if request.url.path == '/codes' %}active{% endif %}">
+                    <span class="nav-icon">🏷️</span> کدهای تخفیف
+                </a>
+                <a href="/broadcast" class="nav-item {% if request.url.path == '/broadcast' %}active{% endif %}">
+                    <span class="nav-icon">📢</span> پیام همگانی
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="/logout" class="logout-btn">خروج از حساب</a>
+            </div>
+        </aside>
+        <main class="main-content">
+            {% if request.query_params.get('ok') %}
+            <div class="toast toast-success">{{ request.query_params.get('ok') }}</div>
+            {% endif %}
+            {% if request.query_params.get('err') %}
+            <div class="toast toast-error">{{ request.query_params.get('err') }}</div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% else %}
+        {% block auth_content %}{% endblock %}
+    {% endif %}
+</body>
+</html>
