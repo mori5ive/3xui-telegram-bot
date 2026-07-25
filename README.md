@@ -67,21 +67,6 @@
   0)  Exit
 ```
 
-بخش **Edit settings** خودش دسته‌بندی‌شده است (شبیه منوی 3X-UI):
-
-```
-1) Bot & Admins
-2) Mandatory Channel
-3) Panel (3X-UI)
-4) Inbounds / Servers
-5) SOCKS5 Proxy
-6) Log Channel
-7) Payment Cards
-8) Raw .env editor (پیشرفته)
-```
-
-هر بخش فقط مقادیر مربوط به خودش را نشان می‌دهد (توکن‌ها ماسک‌شده) و تغییر هر فیلد بدون نیاز به دیدن کل فایل `.env` انجام می‌شود.
-
 دستورات سریع بدون منو هم در دسترس‌اند:
 ```bash
 vpn-bot start | stop | restart | status | logs | backup | restore | health
