@@ -11,10 +11,15 @@
 <body>
     {% if request.cookies.get('session') %}
     <div class="app-shell">
-        <aside class="sidebar">
+        <button class="hamburger-btn" onclick="document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-backdrop').classList.toggle('open');">
+            ☰
+        </button>
+        <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="document.getElementById('sidebar').classList.remove('open'); this.classList.remove('open');"></div>
+        <aside class="sidebar" id="sidebar">
             <div class="brand">
                 <span class="brand-icon">🛡️</span>
                 <span class="brand-name">VPN Bot</span>
+                <button class="sidebar-close" onclick="document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-backdrop').classList.remove('open');">✕</button>
             </div>
             <nav class="nav">
                 <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %}">
@@ -52,6 +57,9 @@
                 </a>
                 <a href="/broadcast" class="nav-item {% if request.url.path == '/broadcast' %}active{% endif %}">
                     <span class="nav-icon">📢</span> پیام همگانی
+                </a>
+                <a href="/backup" class="nav-item {% if request.url.path == '/backup' %}active{% endif %}">
+                    <span class="nav-icon">💾</span> بکاپ و ریستور
                 </a>
             </nav>
             <div class="sidebar-footer">

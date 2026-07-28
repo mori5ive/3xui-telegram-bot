@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}بکاپ و ریستور{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>بکاپ و ریستور</h1>
+    <p class="page-sub">تهیه نسخه پشتیبان از کد و دیتابیس، یا بازیابی از یک بکاپ قبلی</p>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">💾 گرفتن بکاپ جدید</h2>
+    <p class="muted-text" style="margin-bottom: 14px;">
+        شامل: کد بات، دیتابیس، فایل .env و اسکریپت‌های مدیریتی
+    </p>
+    <form method="post" action="/backup/create">
+        <button type="submit" class="btn btn-primary">💾 ساخت بکاپ جدید</button>
+    </form>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">📤 آپلود و ریستور بکاپ</h2>
+    <p class="muted-text" style="margin-bottom: 14px;">
+        یک فایل .tar.gz را انتخاب کنید تا جایگزین فایل‌های فعلی بات شود
+    </p>
+    <form method="post" action="/backup/upload-restore" enctype="multipart/form-data" class="form-grid"
+          onsubmit="return confirm('این کار فایل‌های فعلی بات را جایگزین می‌کند. مطمئنید؟');">
+        <div class="field">
+            <label>فایل بکاپ (.tar.gz)</label>
+            <input type="file" name="backup_file" accept=".gz,.tar.gz" required>
+        </div>
+        <button type="submit" class="btn btn-reject">♻️ آپلود و ریستور</button>
+    </form>
+</div>
+
+<div class="panel-card">
+    <h2 class="panel-title">📋 بکاپ‌های موجود روی سرور</h2>
+    {% if backups %}
+    <table class="data-table">
+        <thead>
+            <tr><th>نام فایل</th><th>حجم</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for b in backups %}
+            <tr>
+                <td><code>{{ b.name }}</code></td>
+                <td>{{ b.size_kb }} KB</td>
+                <td style="display:flex; gap:8px;">
+                    <a href="/backup/{{ b.name }}/download" class="btn btn-sm">⬇️ دانلود</a>
+                    <form method="post" action="/backup/{{ b.name }}/restore"
+                          onsubmit="return confirm('این بکاپ ریستور شود؟ فایل‌های فعلی جایگزین می‌شوند.');">
+                        <button type="submit" class="btn btn-sm">♻️ ریستور</button>
+                    </form>
+                    <form method="post" action="/backup/{{ b.name }}/delete"
+                          onsubmit="return confirm('این بکاپ حذف شود؟');">
+                        <button type="submit" class="btn btn-reject btn-sm">🗑 حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted-text">هنوز هیچ بکاپی ساخته نشده است.</p>
+    {% endif %}
+</div>
+{% endblock %}

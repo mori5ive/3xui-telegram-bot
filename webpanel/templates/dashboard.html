@@ -6,6 +6,29 @@
     <p class="page-sub">نمای کلی از وضعیت ربات</p>
 </div>
 
+<div class="panel-card">
+    <h2 class="panel-title">🤖 وضعیت بات</h2>
+    <p class="muted-text" style="margin-bottom: 14px;">
+        وضعیت فعلی:
+        {% if bot_status == "running" %}
+            <span class="badge badge-purchase">در حال اجرا</span>
+        {% else %}
+            <span class="badge badge-renew">متوقف</span>
+        {% endif %}
+    </p>
+    <div style="display:flex; gap:10px;">
+        <form method="post" action="/bot/start">
+            <button type="submit" class="btn btn-approve btn-sm">🟢 استارت</button>
+        </form>
+        <form method="post" action="/bot/stop" onsubmit="return confirm('بات متوقف شود؟');">
+            <button type="submit" class="btn btn-reject btn-sm">🔴 استاپ</button>
+        </form>
+        <form method="post" action="/bot/restart">
+            <button type="submit" class="btn btn-sm">🔄 ری‌استارت</button>
+        </form>
+    </div>
+</div>
+
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon icon-blue">👥</div>

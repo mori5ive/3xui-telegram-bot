@@ -9,7 +9,7 @@ from pathlib import Path
 
 import aiosqlite
 import httpx
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, UploadFile, File as FastAPIFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -281,6 +281,8 @@ async def dashboard(request: Request):
     finally:
         await conn.close()
 
+    bot_status = "running" if _service_is_active("vpnbot") else "stopped"
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -291,8 +293,168 @@ async def dashboard(request: Request):
             "today_revenue": today_revenue,
             "pending_count": pending_count,
             "total_wallet": total_wallet,
+            "bot_status": bot_status,
         },
     )
+
+
+def _service_is_active(service_name: str) -> bool:
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", "--quiet", service_name], timeout=5
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+@app.get("/backup", response_class=HTMLResponse)
+async def backup_page(request: Request):
+    if not check_session(request):
+        return RedirectResponse("/login", status_code=303)
+
+    backup_dir = BOT_DIR / "backups"
+    backup_dir.mkdir(exist_ok=True)
+    backups = sorted(backup_dir.glob("backup_*.tar.gz"), key=lambda p: p.stat().st_mtime, reverse=True)
+    items = [
+        {"name": p.name, "size_kb": round(p.stat().st_size / 1024, 1)}
+        for p in backups
+    ]
+    return templates.TemplateResponse("backup.html", {"request": request, "backups": items})
+
+
+@app.post("/backup/create")
+async def backup_create(request: Request):
+    if not check_session(request):
+        return RedirectResponse("/login", status_code=303)
+
+    import tarfile
+    from datetime import datetime
+
+    backup_dir = BOT_DIR / "backups"
+    backup_dir.mkdir(exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_path = backup_dir / f"backup_{ts}.tar.gz"
+
+    items = ["config.py", "database.py", "main.py", "requirements.txt", "vpn_bot.db",
+             "handlers", "keyboards", "middlewares", "services", "utils", "scripts"]
+    with tarfile.open(out_path, "w:gz") as tar:
+        env_file = BOT_DIR / ".env"
+        if env_file.exists():
+            tar.add(env_file, arcname=".env")
+        for item in items:
+            p = BOT_DIR / item
+            if p.exists():
+                tar.add(p, arcname=item)
+
+    return RedirectResponse("/backup?ok=بکاپ ساخته شد", status_code=303)
+
+
+@app.get("/backup/{filename}/download")
+async def backup_download(filename: str, request: Request):
+    if not check_session(request):
+        return RedirectResponse("/login", status_code=303)
+
+    from fastapi.responses import FileResponse
+
+    if "/" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    path = BOT_DIR / "backups" / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Backup not found")
+
+    return FileResponse(path, filename=filename, media_type="application/gzip")
+
+
+@app.post("/backup/{filename}/delete")
+async def backup_delete(filename: str, request: Request):
+    if not check_session(request):
+        return RedirectResponse("/login", status_code=303)
+
+    if "/" in filename or ".." in filename:
+        return RedirectResponse("/backup?err=نام فایل نامعتبر", status_code=303)
+
+    path = BOT_DIR / "backups" / filename
+    if path.exists():
+        path.unlink()
+
+    return RedirectResponse("/backup?ok=بکاپ حذف شد", status_code=303)
+
+
+@app.post("/backup/upload-restore")
+async def backup_upload_restore(request: Request, backup_file: UploadFile = FastAPIFile(...)):
+    if not check_session(request):
+        return RedirectResponse("/login", status_code=303)
+
+    import tarfile
+    import subprocess
+
+    if not backup_file.filename.endswith(".tar.gz"):
+        return RedirectResponse("/backup?err=فایل باید .tar.gz باشد", status_code=303)
+
+    backup_dir = BOT_DIR / "backups"
+    backup_dir.mkdir(exist_ok=True)
+    tmp_path = backup_dir / f"_uploaded_{backup_file.filename}"
+
+    content_bytes = await backup_file.read()
+    tmp_path.write_bytes(content_bytes)
+
+    try:
+        subprocess.run(["systemctl", "stop", "vpnbot"], check=False, timeout=15)
+        with tarfile.open(tmp_path, "r:gz") as tar:
+            tar.extractall(path=BOT_DIR)
+        subprocess.run(["systemctl", "start", "vpnbot"], check=False, timeout=15)
+    except Exception as e:
+        return RedirectResponse(f"/backup?err=خطا در ریستور: {e}", status_code=303)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    return RedirectResponse("/backup?ok=ریستور کامل شد و بات ری‌استارت شد", status_code=303)
+
+
+@app.post("/backup/{filename}/restore")
+async def backup_restore_existing(filename: str, request: Request):
+    if not check_session(request):
+        return RedirectResponse("/login", status_code=303)
+
+    import tarfile
+    import subprocess
+
+    if "/" in filename or ".." in filename:
+        return RedirectResponse("/backup?err=نام فایل نامعتبر", status_code=303)
+
+    path = BOT_DIR / "backups" / filename
+    if not path.exists():
+        return RedirectResponse("/backup?err=فایل پیدا نشد", status_code=303)
+
+    try:
+        subprocess.run(["systemctl", "stop", "vpnbot"], check=False, timeout=15)
+        with tarfile.open(path, "r:gz") as tar:
+            tar.extractall(path=BOT_DIR)
+        subprocess.run(["systemctl", "start", "vpnbot"], check=False, timeout=15)
+    except Exception as e:
+        return RedirectResponse(f"/backup?err=خطا در ریستور: {e}", status_code=303)
+
+    return RedirectResponse("/backup?ok=ریستور کامل شد و بات ری‌استارت شد", status_code=303)
+
+
+@app.post("/bot/{action}")
+async def bot_control(action: str, request: Request):
+    if not check_session(request):
+        return RedirectResponse("/login", status_code=303)
+    if action not in ("start", "stop", "restart"):
+        return RedirectResponse("/?err=دستور نامعتبر", status_code=303)
+
+    import subprocess
+    try:
+        subprocess.run(["systemctl", action, "vpnbot"], check=False, timeout=15)
+    except Exception:
+        pass
+
+    labels = {"start": "استارت شد", "stop": "متوقف شد", "restart": "ری‌استارت شد"}
+    return RedirectResponse(f"/?ok=بات {labels[action]}", status_code=303)
 
 @app.get("/payments", response_class=HTMLResponse)
 async def payments_page(request: Request):
