@@ -93,8 +93,6 @@ vpn-bot start | stop | restart | status | logs | backup | restore | health
 bash <(curl -fsSL https://raw.githubusercontent.com/alireza2692/3xui-telegram-bot/main/install.sh)
 ```
 
-> جای `USERNAME/REPO_NAME` را با آدرس مخزن گیت‌هاب خودتان جایگزین کنید.
-
 اسکریپت به‌ترتیب:
 1. می‌پرسد که نصب تازه می‌خواهید یا بازیابی از یک بکاپ قبلی
 2. در حالت نصب تازه، سورس بات را از همین مخزن گیت‌هاب دانلود می‌کند
