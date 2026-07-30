@@ -53,11 +53,17 @@ if [ "$RESTORE_MODE" == "n" ]; then
     fi
 
     TMP_CLONE=$(mktemp -d)
-    if git clone -b "$REPO_BRANCH" --depth 1 "$REPO_URL" "$TMP_CLONE" 2>/dev/null; then
-        rsync -a --exclude='.git' --exclude='.env' "$TMP_CLONE"/ "$BOT_DIR"/ 2>/dev/null || cp -r "$TMP_CLONE"/. "$BOT_DIR"/
+
+    if curl -fsSL \
+        "https://github.com/alireza2692/3xui-telegram-bot/archive/refs/heads/${REPO_BRANCH}.tar.gz" \
+        | tar -xz -C "$TMP_CLONE" --strip-components=1; then
+    
+        rsync -a --exclude='.git' --exclude='.env' "$TMP_CLONE"/ "$BOT_DIR"/ 2>/dev/null \
+            || cp -r "$TMP_CLONE"/. "$BOT_DIR"/
+    
         rm -rf "$TMP_CLONE"
     else
-        echo "Failed to clone the repository."
+        echo "Failed to download the repository."
         exit 1
     fi
 
