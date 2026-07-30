@@ -258,7 +258,6 @@ sed -i "s|{{BOT_DIR}}|$BOT_DIR|g" /usr/local/bin/vpn-bot
 chmod +x /usr/local/bin/vpn-bot
 ok "vpn-bot command installed."
 echo ""
-ask_yesno "Install the web admin panel too?" WANT_WEBPANEL
 PANEL_LINK=""
 
 echo ""
